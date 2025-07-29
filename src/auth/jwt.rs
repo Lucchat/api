@@ -1,3 +1,4 @@
+use axum::extract::State;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use shuttle_runtime::SecretStore;
@@ -23,7 +24,6 @@ pub fn create_jwt(user_id: &str, secret_store: &SecretStore) -> String {
     let secret = secret_store
         .get("JWT_SECRET")
         .expect("JWT_SECRET not found in Secrets.toml");
-    println!("Using secret: {}", secret); // Debugging line to check the secret
     encode(
         &Header::default(),
         &claims,
@@ -46,4 +46,31 @@ pub fn decode_jwt(
         &Validation::new(Algorithm::HS256),
     )?;
     Ok(token_data.claims)
+}
+
+use axum::{http::Request, middleware::Next, response::Response};
+use axum::http::StatusCode;
+use crate::state::AppState;
+
+pub async fn require_jwt(
+    State(state): State<AppState>,
+    mut req: Request<axum::body::Body>,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    let auth_header = req
+        .headers()
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok());
+
+    let Some(token) = auth_header.and_then(|s| s.strip_prefix("Bearer ")) else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+
+    let claims = match decode_jwt(token, &state.secret_store) {
+        Ok(c) => c,
+        Err(_) => return Err(StatusCode::UNAUTHORIZED),
+    };
+
+    req.extensions_mut().insert(claims.sub.clone());
+    Ok(next.run(req).await)
 }

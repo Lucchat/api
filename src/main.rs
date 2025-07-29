@@ -1,8 +1,6 @@
-use axum::{routing::post, Router};
+use axum::{middleware, routing::{get, post}, Router};
 use lucchat_api::{
-    models::user::User,
-    routes::auth::{login, register},
-    state::AppState,
+    auth::jwt::require_jwt, models::user::User, routes::{auth::{login, refresh_token, register}, user::get_profile}, state::AppState
 };
 use mongodb::Collection;
 use shuttle_runtime::SecretStore;
@@ -19,9 +17,18 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_
         secret_store,
     };
 
+    let protected_routes = Router::new()
+        .route("/profile", get(get_profile))
+        .route("/auth/refresh", get(refresh_token))
+        .route_layer(middleware::from_fn_with_state(
+            app_state.clone(),
+            require_jwt,
+        ));
+
     let app = Router::new()
         .route("/auth/register", post(register))
         .route("/auth/login", post(login))
+        .merge(protected_routes)
         .with_state(app_state);
 
     Ok(app.into())
