@@ -7,4 +7,14 @@ edition = "2021"
 axum = "0.8"
 shuttle-axum = "0.56.0"
 shuttle-runtime = "0.56.0"
-tokio = "1.28.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.141"
+jsonwebtoken = "9.3.1"
+tokio = { version = "1.47.0", features = ["full"] }
+tower = "0.5.2"
+uuid = { version = "1.17.0", features = ["v4"] }
+dotenv = "0.15"
+anyhow = "1.0.98"
+chrono = "0.4.41"
+bcrypt = "0.17.0"
+mongodb = "3.2.4"
