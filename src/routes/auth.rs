@@ -34,7 +34,7 @@ pub async fn login(
         ))?;
 
     let after_find = start.elapsed();
-    println!("🔍 find_one took: {:?}", after_find);
+    println!("🔍 find_one took: {after_find:?}", );
 
     let is_valid = verify_password(&payload.password, &user.password_hash).unwrap_or(false);
 

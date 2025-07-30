@@ -14,7 +14,7 @@ pub async fn set_valid_jti(
         )));
     }
     let mut conn = redis.clone().get_multiplexed_async_connection().await?;
-    conn.set(format!("{}_jti:{}", token_type, user_id), jti)
+    conn.set(format!("{token_type}_jti:{user_id}"), jti)
         .await
 }
 
@@ -32,6 +32,6 @@ pub async fn is_jti_valid(
         )));
     }
     let mut conn = redis.clone().get_multiplexed_async_connection().await?;
-    let expected: Option<String> = conn.get(format!("{}_jti:{}", token_type, user_id)).await?;
+    let expected: Option<String> = conn.get(format!("{token_type}_jti:{user_id}")).await?;
     Ok(expected.as_deref() == Some(jti))
 }

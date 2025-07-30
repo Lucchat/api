@@ -27,7 +27,7 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_
     let app_state = AppState {
         users,
         secret_store,
-        redis: redis,
+        redis,
     };
 
     let protected_by_refresh_routes = Router::new()
