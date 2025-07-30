@@ -6,4 +6,5 @@ use shuttle_runtime::SecretStore;
 pub struct AppState {
     pub users: Collection<User>,
     pub secret_store: SecretStore,
+    pub redis: redis::Client,
 }

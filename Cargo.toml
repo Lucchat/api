@@ -16,5 +16,8 @@ uuid = { version = "1.17.0", features = ["v4"] }
 dotenv = "0.15"
 anyhow = "1.0.98"
 chrono = "0.4.41"
-bcrypt = "0.17.0"
 mongodb = "3.2.4"
+argon2 = "0.5"
+rand_core = "0.6"
+password-hash = "0.5"
+redis = { version = "0.32.4", features = ["tokio-comp"] }
