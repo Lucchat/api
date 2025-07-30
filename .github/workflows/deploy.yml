@@ -19,4 +19,6 @@ jobs:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: proj_01K06ZV4YXQ9JFF2M9V71VH9J3
           secrets: |
-            DATABASE_URI = ''
+            JWT_SECRET = '${{ secrets.JWT_SECRET }}'
+            DATABASE_URI = '${{ secrets.DATABASE_URI }}'
+            REDIS_URI = '${{ secrets.REDIS_URI }}'
