@@ -1,9 +1,9 @@
-use crate::auth::{
+use crate::{auth::{
     jwt::{create_access_token, create_refresh_token, decode_jwt},
     model::{LoginPayload, RegisterPayload},
     password::{hash_password, verify_password},
     whitelist::set_valid_jti,
-};
+}, models::user::Key};
 use crate::models::user::{User, UserPublic};
 use crate::state::AppState;
 use crate::utils::error::error_response;
@@ -69,6 +69,7 @@ pub async fn login(
         let user_public = UserPublic {
             uuid: user.uuid,
             username: user.username,
+            keys: user.keys
         };
         Ok(Json(json!({ "user": user_public, "token": {
             "access": access_token,
@@ -103,7 +104,12 @@ pub async fn register(
 
     let hashed = hash_password(&payload.password)
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
-    let user = User::new(payload.username.clone(), hashed);
+    let keys = Key::new(
+        payload.ik_pub,
+        payload.spk_pub,
+        payload.opk_pub,
+    );
+    let user = User::new(payload.username.clone(), hashed, keys);
 
     state
         .users
@@ -137,6 +143,7 @@ pub async fn register(
         "user": UserPublic {
             uuid: user.uuid,
             username: user.username,
+            keys: user.keys
         },
         "token": {
             "access": access_token,

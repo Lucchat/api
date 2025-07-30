@@ -24,5 +24,6 @@ pub async fn get_profile(
     Ok(Json(UserPublic {
         uuid: user.uuid,
         username: user.username,
+        keys: user.keys,
     }))
 }
