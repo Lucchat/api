@@ -2,14 +2,13 @@ use crate::{
     auth::jwt::require_access_token,
     state::AppState,
     user::{
-        models::{UserPrivate, UserPublic, UserResponse},
-        services,
+        models::{UserPrivate, UserPublic, UserResponse}, payload::UserUpdatePayload, services
     },
 };
 use axum::{
     extract::Path,
     middleware,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Router,
 };
 use axum::{
@@ -41,6 +40,15 @@ async fn get_all(
 ) -> Result<Json<Vec<UserPublic>>, (StatusCode, Json<Value>)> {
     let users = services::get_all(&state).await?;
     Ok(Json(users))
+}
+
+async fn update_user(
+    State(state): State<AppState>,
+    Extension(user_id): Extension<String>,
+    Json(payload): Json<UserUpdatePayload>,
+) -> Result<Json<UserPrivate>, (StatusCode, Json<Value>)> {
+    let updated_user = services::update_user(&state, &user_id, payload).await?;
+    Ok(Json(updated_user))
 }
 
 async fn request_friendship(
@@ -95,11 +103,12 @@ pub fn user_routes(app_state: AppState) -> Router<AppState> {
     let protected = Router::new()
         .route("/me", get(get_profile))
         .route("/", get(get_all))
-        .route("/:id", get(get_by_id))
-        .route("/:id/friends/requests", post(request_friendship))
-        .route("/:id/friends/requests/accept", post(accept_friendship))
-        .route("/:id/friends/requests/reject", post(reject_friendship))
-        .route("/:id/friends", delete(remove_friendship))
+        .route("/", patch(update_user))
+        .route("/{id}", get(get_by_id))
+        .route("/{id}/friends", post(request_friendship))
+        .route("/{id}/friends/accept", post(accept_friendship))
+        .route("/{id}/friends/reject", post(reject_friendship))
+        .route("/{id}/friends", delete(remove_friendship))
         .route_layer(middleware::from_fn_with_state(
             app_state.clone(),
             require_access_token,

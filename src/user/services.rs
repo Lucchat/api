@@ -2,6 +2,7 @@ use crate::{
     state::AppState,
     user::{
         models::{UserPrivate, UserPublic, UserPublicFriend, UserResponse},
+        payload::UserUpdatePayload,
         utils::{find_user, update_user_fields},
     },
     utils::error::error_response,
@@ -9,6 +10,7 @@ use crate::{
 use axum::{http::StatusCode, Json};
 use futures::stream::StreamExt;
 use mongodb::bson::doc;
+use mongodb::bson::Document;
 use serde_json::{json, Value};
 
 pub async fn get_profile(
@@ -93,6 +95,60 @@ pub async fn get_all(state: &AppState) -> Result<Vec<UserPublic>, (StatusCode, J
     }
 
     Ok(users)
+}
+
+pub async fn update_user(
+    state: &AppState,
+    user_id: &str,
+    updates: UserUpdatePayload,
+) -> Result<UserPrivate, (StatusCode, Json<Value>)> {
+    let mut set_doc = Document::new();
+
+    // Vérifier si le nouveau username existe déjà (et qu'il n'est pas le sien)
+    if let Some(username) = &updates.username {
+        let existing_user = state
+            .users
+            .find_one(doc! { "username": username })
+            .await
+            .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
+
+        if let Some(user) = existing_user {
+            if user.uuid != user_id {
+                return Err(error_response(
+                    StatusCode::BAD_REQUEST,
+                    Some("Username already taken"),
+                ));
+            }
+        }
+    }
+
+    
+    if let Some(username) = &updates.username {
+        set_doc.insert("username", username);
+    }
+    if let Some(description) = &updates.description {
+        set_doc.insert("description", description);
+    }
+    if let Some(profile_picture) = &updates.profile_picture {
+        set_doc.insert("profile_picture", profile_picture);
+    }
+
+    if set_doc.is_empty() {
+        return Err(error_response(
+            StatusCode::BAD_REQUEST,
+            Some("No fields to update"),
+        ));
+    }
+
+    let update_doc = doc! { "$set": set_doc };
+
+    state
+        .users
+        .update_one(doc! { "uuid": user_id }, update_doc)
+        .await
+        .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
+
+    Ok(get_profile(state, user_id).await?)
 }
 
 pub async fn request_friendship(
