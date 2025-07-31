@@ -90,7 +90,7 @@ pub async fn require_access_token(
             Some("Expected access token"),
         ));
     }
-    println!("jti: {}", claims.jti);
+
     if !is_jti_valid(&state.redis, &claims.sub, &claims.jti, "access")
         .await
         .unwrap_or(false)

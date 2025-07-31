@@ -1,16 +1,8 @@
-use axum::{
-    middleware,
-    routing::{get, post},
-    Router,
-};
+use axum::Router;
 use lucchat_api::{
-    auth::jwt::{require_access_token, require_refresh_token},
-    models::user::User,
-    routes::{
-        auth::{login, refresh_token, register},
-        user::get_profile,
-    },
+    routes::{auth::auth_routes, user::user_routes},
     state::AppState,
+    user::models::User,
 };
 use mongodb::Collection;
 use shuttle_runtime::SecretStore;
@@ -30,25 +22,12 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_
         redis,
     };
 
-    let protected_by_refresh_routes = Router::new()
-        .route("/auth/refresh", get(refresh_token))
-        .route_layer(middleware::from_fn_with_state(
-            app_state.clone(),
-            require_refresh_token,
-        ));
-
-    let protected_by_access_routes = Router::new()
-        .route("/user/profile", get(get_profile))
-        .route_layer(middleware::from_fn_with_state(
-            app_state.clone(),
-            require_access_token,
-        ));
+    let user_routes = user_routes(app_state.clone());
+    let auth_routes = auth_routes(app_state.clone());
 
     let app = Router::new()
-        .route("/auth/register", post(register))
-        .route("/auth/login", post(login))
-        .merge(protected_by_refresh_routes)
-        .merge(protected_by_access_routes)
+        .merge(auth_routes)
+        .merge(user_routes)
         .with_state(app_state);
 
     Ok(app.into())

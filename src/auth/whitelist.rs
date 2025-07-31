@@ -14,8 +14,7 @@ pub async fn set_valid_jti(
         )));
     }
     let mut conn = redis.clone().get_multiplexed_async_connection().await?;
-    conn.set(format!("{token_type}_jti:{user_id}"), jti)
-        .await
+    conn.set(format!("{token_type}_jti:{user_id}"), jti).await
 }
 
 /// Vérifie que le jti du token correspond à celui autorisé en Redis
