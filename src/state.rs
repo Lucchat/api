@@ -1,4 +1,4 @@
-use crate::models::user::User;
+use crate::user::models::User;
 use mongodb::Collection;
 use shuttle_runtime::SecretStore;
 

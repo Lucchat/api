@@ -10,4 +10,7 @@ pub struct LoginPayload {
 pub struct RegisterPayload {
     pub username: String,
     pub password: String,
+    pub ik_pub: [u8; 32],
+    pub spk_pub: [u8; 32],
+    pub opk_pub: Vec<[u8; 32]>,
 }
