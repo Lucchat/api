@@ -51,6 +51,14 @@ async fn update_user(
     Ok(Json(updated_user))
 }
 
+async fn delete_user(
+    State(state): State<AppState>,
+    Extension(user_id): Extension<String>,
+) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+    services::delete_user(&state, &user_id).await?;
+    Ok(Json(json!({"message": "User deleted successfully"})))
+}
+
 async fn request_friendship(
     State(state): State<AppState>,
     Path(username): Path<String>,
@@ -104,6 +112,7 @@ pub fn user_routes(app_state: AppState) -> Router<AppState> {
         .route("/me", get(get_profile))
         .route("/", get(get_all))
         .route("/", patch(update_user))
+        .route("/", delete(delete_user))
         .route("/{id}", get(get_by_id))
         .route("/{id}/friends", post(request_friendship))
         .route("/{id}/friends/accept", post(accept_friendship))

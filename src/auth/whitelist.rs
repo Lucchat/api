@@ -1,6 +1,5 @@
 use redis::{AsyncCommands, Client};
 
-/// Met à jour le jti valide de l'utilisateur
 pub async fn set_valid_jti(
     redis: &Client,
     user_id: &str,
@@ -17,7 +16,7 @@ pub async fn set_valid_jti(
     conn.set(format!("{token_type}_jti:{user_id}"), jti).await
 }
 
-/// Vérifie que le jti du token correspond à celui autorisé en Redis
+
 pub async fn is_jti_valid(
     redis: &Client,
     user_id: &str,

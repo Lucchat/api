@@ -53,7 +53,7 @@ fn create_jwt(
     .expect("JWT creation failed")
 }
 
-/// Décode un JWT reçu à l’aide du secret contenu dans le `SecretStore`.
+
 pub fn decode_jwt(
     token: &str,
     secret_store: &SecretStore,

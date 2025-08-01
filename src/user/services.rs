@@ -3,7 +3,7 @@ use crate::{
     user::{
         models::{UserPrivate, UserPublic, UserPublicFriend, UserResponse},
         payload::UserUpdatePayload,
-        utils::{find_user, update_user_fields},
+        utils::{clean_reference, find_user, update_user_fields},
     },
     utils::error::error_response,
 };
@@ -104,13 +104,14 @@ pub async fn update_user(
 ) -> Result<UserPrivate, (StatusCode, Json<Value>)> {
     let mut set_doc = Document::new();
 
-    // Vérifier si le nouveau username existe déjà (et qu'il n'est pas le sien)
     if let Some(username) = &updates.username {
         let existing_user = state
             .users
             .find_one(doc! { "username": username })
             .await
-            .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
+            .map_err(|_| {
+                error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error"))
+            })?;
 
         if let Some(user) = existing_user {
             if user.uuid != user_id {
@@ -122,7 +123,6 @@ pub async fn update_user(
         }
     }
 
-    
     if let Some(username) = &updates.username {
         set_doc.insert("username", username);
     }
@@ -149,6 +149,48 @@ pub async fn update_user(
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
 
     Ok(get_profile(state, user_id).await?)
+}
+
+pub async fn delete_user(state: &AppState, user_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
+    let user = find_user(state, user_id).await?;
+
+    let pending_requests = user.pending_friend_requests.clone();
+    let friends_requests = user.friends_requests.clone();
+    let friends = user.friends.clone();
+
+    let result = state
+        .users
+        .delete_one(doc! { "uuid": user_id })
+        .await
+        .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
+
+    if result.deleted_count == 0 {
+        return Err(error_response(
+            StatusCode::NOT_FOUND,
+            Some("User not found"),
+        ));
+    }
+    clean_reference(state, friends, "friends", |u| &mut u.friends, user_id).await;
+
+    clean_reference(
+        state,
+        pending_requests,
+        "friends_requests",
+        |u| &mut u.friends_requests,
+        user_id,
+    )
+    .await;
+
+    clean_reference(
+        state,
+        friends_requests,
+        "pending_friend_requests",
+        |u| &mut u.pending_friend_requests,
+        user_id,
+    )
+    .await;
+
+    Ok(())
 }
 
 pub async fn request_friendship(
@@ -245,7 +287,7 @@ pub async fn accept_friendship(
 
     if !user.friends_requests.contains(&friend_id.to_string()) {
         return Err(error_response(
-            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
             Some("Friend request not found"),
         ));
     }
@@ -254,7 +296,7 @@ pub async fn accept_friendship(
         .contains(&user_id.to_string())
     {
         return Err(error_response(
-            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
             Some("Friend request not found on friend's side"),
         ));
     }
@@ -264,7 +306,7 @@ pub async fn accept_friendship(
         .contains(&user_id.to_string())
     {
         return Err(error_response(
-            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
             Some("Friend request not found on friend's side"),
         ));
     }
@@ -302,7 +344,7 @@ pub async fn decline_friendship(
 
     if !user.friends_requests.contains(&friend_id.to_string()) {
         return Err(error_response(
-            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
             Some("No pending friend request from this user"),
         ));
     }
@@ -311,7 +353,7 @@ pub async fn decline_friendship(
         .contains(&user_id.to_string())
     {
         return Err(error_response(
-            StatusCode::BAD_REQUEST,
+            StatusCode::NOT_FOUND,
             Some("No pending friend request from this user"),
         ));
     }
