@@ -16,7 +16,6 @@ pub async fn set_valid_jti(
     conn.set(format!("{token_type}_jti:{user_id}"), jti).await
 }
 
-
 pub async fn is_jti_valid(
     redis: &Client,
     user_id: &str,

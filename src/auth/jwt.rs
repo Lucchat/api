@@ -23,7 +23,7 @@ pub fn create_access_token(user_id: &str, secret_store: &SecretStore) -> String 
 }
 
 pub fn create_refresh_token(user_id: &str, secret_store: &SecretStore) -> String {
-    create_jwt(user_id, secret_store, 7 * 24 * 60 * 60, "refresh")
+    create_jwt(user_id, secret_store,  24 * 60 * 60, "refresh")
 }
 
 fn create_jwt(
@@ -52,7 +52,6 @@ fn create_jwt(
     )
     .expect("JWT creation failed")
 }
-
 
 pub fn decode_jwt(
     token: &str,

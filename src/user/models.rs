@@ -1,3 +1,4 @@
+use crate::message::models::Message;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -12,6 +13,7 @@ pub struct User {
     pub friends_requests: Vec<String>,
     pub friends: Vec<String>,
     pub keys: Key,
+    pub unread_messages: Vec<Message>,
 }
 
 impl User {
@@ -26,6 +28,7 @@ impl User {
             pending_friend_requests: Vec::new(),
             friends_requests: Vec::new(),
             friends: Vec::new(),
+            unread_messages: Vec::new(),
         }
     }
 }
@@ -64,6 +67,13 @@ pub struct UserPrivate {
     pub pending_friend_requests: Vec<String>,
     pub friends_requests: Vec<String>,
     pub friends: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MessageInfo {
+    pub uuid: String,
+    pub sender: String,
+    pub receiver: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

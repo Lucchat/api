@@ -50,7 +50,9 @@ fn check_lowercase(password: &str) -> Result<bool, (StatusCode, Json<Value>)> {
     }
     Err((
         StatusCode::BAD_REQUEST,
-        Json(json!({ "error": {"code": 400, "message": "Password must contain at least one lowercase letter" }})),
+        Json(
+            json!({ "error": {"code": 400, "message": "Password must contain at least one lowercase letter" }}),
+        ),
     ))
 }
 
@@ -60,17 +62,21 @@ fn check_uppercase(password: &str) -> Result<bool, (StatusCode, Json<Value>)> {
     }
     Err((
         StatusCode::BAD_REQUEST,
-        Json(json!({ "error": {"code": 400, "message": "Password must contain at least one uppercase letter" }})),
+        Json(
+            json!({ "error": {"code": 400, "message": "Password must contain at least one uppercase letter" }}),
+        ),
     ))
 }
 
 fn check_digit(password: &str) -> Result<bool, (StatusCode, Json<Value>)> {
-    if password.chars().any(|c| c.is_digit(10)) {
+    if password.chars().any(|c| c.is_ascii_digit()) {
         return Ok(true);
     }
     Err((
         StatusCode::BAD_REQUEST,
-        Json(json!({ "error": {"code": 400, "message": "Password must contain at least one digit" }})),
+        Json(
+            json!({ "error": {"code": 400, "message": "Password must contain at least one digit" }}),
+        ),
     ))
 }
 
@@ -81,6 +87,8 @@ fn check_special_char(password: &str) -> Result<bool, (StatusCode, Json<Value>)>
     }
     Err((
         StatusCode::BAD_REQUEST,
-        Json(json!({ "error": {"code": 400, "message": "Password must contain at least one special character" }})),
+        Json(
+            json!({ "error": {"code": 400, "message": "Password must contain at least one special character" }}),
+        ),
     ))
 }

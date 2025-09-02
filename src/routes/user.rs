@@ -2,7 +2,9 @@ use crate::{
     auth::jwt::require_access_token,
     state::AppState,
     user::{
-        models::{UserPrivate, UserPublic, UserResponse}, payload::UserUpdatePayload, services
+        models::{MessageInfo, UserPrivate, UserPublic, UserResponse},
+        payload::UserUpdatePayload,
+        services,
     },
 };
 use axum::{
@@ -107,6 +109,14 @@ async fn remove_friendship(
     }
 }
 
+async fn get_messages(
+    State(state): State<AppState>,
+    Extension(user_id): Extension<String>,
+) -> Result<Json<Vec<MessageInfo>>, (StatusCode, Json<Value>)> {
+    let messages = services::get_messages(&state, &user_id).await?;
+    Ok(Json(messages))
+}
+
 pub fn user_routes(app_state: AppState) -> Router<AppState> {
     let protected = Router::new()
         .route("/me", get(get_profile))
@@ -118,6 +128,7 @@ pub fn user_routes(app_state: AppState) -> Router<AppState> {
         .route("/{id}/friends/accept", post(accept_friendship))
         .route("/{id}/friends/reject", post(reject_friendship))
         .route("/{id}/friends", delete(remove_friendship))
+        .route("/messages", get(get_messages))
         .route_layer(middleware::from_fn_with_state(
             app_state.clone(),
             require_access_token,
