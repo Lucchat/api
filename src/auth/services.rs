@@ -37,8 +37,7 @@ pub async fn login(
     if is_valid {
         let (access_token, refresh_token) =
             update_jwt(&user.uuid, &state.secret_store, &state.redis)
-                .await
-                .map_err(|(status, json)| (status, json))?;
+                .await?;
 
         let user_private = UserPrivate {
             uuid: user.uuid,
@@ -85,7 +84,7 @@ pub async fn register(
         ));
     }
 
-    is_password_strong(&password).map_err(|(status, json)| (status, json))?;
+    is_password_strong(&password)?;
 
     let hashed = hash_password(&password)
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
@@ -99,8 +98,7 @@ pub async fn register(
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
 
     let (access_token, refresh_token) = update_jwt(&user.uuid, &state.secret_store, &state.redis)
-        .await
-        .map_err(|(status, json)| (status, json))?;
+        .await?;
 
     let user_private = UserPrivate {
         uuid: user.uuid,
@@ -139,9 +137,7 @@ pub async fn refresh_token(
     }
 
     let (new_access, new_refresh) = update_jwt(&claims.sub, &state.secret_store, &state.redis)
-        .await
-        .map_err(|(status, json)| (status, json))?;
-
+        .await?;
     Ok(Json(json!({
         "token": {
             "access": new_access,

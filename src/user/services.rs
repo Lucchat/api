@@ -1,7 +1,7 @@
 use crate::{
     state::AppState,
     user::{
-        models::{UserPrivate, UserPublic, UserPublicFriend, UserResponse},
+        models::{MessageInfo, UserPrivate, UserPublic, UserPublicFriend, UserResponse},
         payload::UserUpdatePayload,
         utils::{clean_reference, find_user, update_user_fields},
     },
@@ -102,7 +102,7 @@ pub async fn update_user(
     user_id: &str,
     updates: UserUpdatePayload,
 ) -> Result<UserPrivate, (StatusCode, Json<Value>)> {
-    let mut set_doc = Document::new();
+    let mut set_doc: Document = Document::new();
 
     if let Some(username) = &updates.username {
         let existing_user = state
@@ -148,7 +148,7 @@ pub async fn update_user(
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
 
-    Ok(get_profile(state, user_id).await?)
+    get_profile(state, user_id).await
 }
 
 pub async fn delete_user(state: &AppState, user_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
@@ -412,4 +412,21 @@ pub async fn remove_friendship(
     update_user_fields(state, friend_id, doc! { "friends": friend.friends }).await?;
 
     Ok(())
+}
+
+pub async fn get_messages(
+    state: &AppState,
+    user_id: &str,
+) -> Result<Vec<MessageInfo>, (StatusCode, Json<Value>)> {
+    let user = find_user(state, user_id).await?;
+    let messages_info = user
+        .unread_messages
+        .iter()
+        .map(|message| MessageInfo {
+            uuid: message.uuid.clone(),
+            sender: message.sender.clone(),
+            receiver: message.receiver.clone(),
+        })
+        .collect();
+    Ok(messages_info)
 }

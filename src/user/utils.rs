@@ -41,7 +41,12 @@ pub async fn clean_reference(
         async move {
             if let Ok(mut friend) = find_user(state, &fid).await {
                 field_extractor(&mut friend).retain(|id| id != user_id);
-                let _ = update_user_fields(state, &fid, doc! { field_name: field_extractor(&mut friend).clone() }).await;
+                let _ = update_user_fields(
+                    state,
+                    &fid,
+                    doc! { field_name: field_extractor(&mut friend).clone() },
+                )
+                .await;
             }
         }
     });
