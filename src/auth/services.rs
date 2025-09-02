@@ -36,8 +36,7 @@ pub async fn login(
 
     if is_valid {
         let (access_token, refresh_token) =
-            update_jwt(&user.uuid, &state.secret_store, &state.redis)
-                .await?;
+            update_jwt(&user.uuid, &state.secret_store, &state.redis).await?;
 
         let user_private = UserPrivate {
             uuid: user.uuid,
@@ -97,8 +96,8 @@ pub async fn register(
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
 
-    let (access_token, refresh_token) = update_jwt(&user.uuid, &state.secret_store, &state.redis)
-        .await?;
+    let (access_token, refresh_token) =
+        update_jwt(&user.uuid, &state.secret_store, &state.redis).await?;
 
     let user_private = UserPrivate {
         uuid: user.uuid,
@@ -136,8 +135,8 @@ pub async fn refresh_token(
         return Err(error_response(StatusCode::UNAUTHORIZED, None));
     }
 
-    let (new_access, new_refresh) = update_jwt(&claims.sub, &state.secret_store, &state.redis)
-        .await?;
+    let (new_access, new_refresh) =
+        update_jwt(&claims.sub, &state.secret_store, &state.redis).await?;
     Ok(Json(json!({
         "token": {
             "access": new_access,

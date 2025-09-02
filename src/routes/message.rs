@@ -1,6 +1,9 @@
 use crate::{
     auth::jwt::require_access_token,
-    message::{models::{self, Message}, services},
+    message::{
+        models::{self, Message},
+        services,
+    },
     state::AppState,
 };
 use axum::{
@@ -24,7 +27,6 @@ async fn send_message(
     services::send_message(&state, &user_id, message).await?;
     Ok(Json(json!({"status": "Message sent successfully"})))
 }
-
 
 async fn read_message(
     State(state): State<AppState>,

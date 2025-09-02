@@ -1,10 +1,10 @@
+use crate::message::models::Message;
 use crate::state::AppState;
 use crate::user::utils::find_user;
 use crate::utils::error::error_response;
-use crate::{message::models::Message};
 use axum::{http::StatusCode, Json};
-use serde_json::Value;
 use mongodb::bson::{doc, to_document};
+use serde_json::Value;
 
 pub async fn send_message(
     state: &AppState,
@@ -24,20 +24,19 @@ pub async fn send_message(
             Some("Sender and receiver cannot be the same"),
         ));
     }
-
-    if let Err(_) = find_user(state, message.receiver.as_str()).await {
+    if (find_user(state, message.sender.as_str()).await).is_err() {
         return Err(error_response(
             StatusCode::NOT_FOUND,
-            Some("Receiver user does not exist"),
+            Some("Sender user does not exist"),
         ));
     }
 
     let msg_doc = to_document(&message).map_err(|e| {
-           error_response(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Some(&format!("Failed to convert message to document: {}", e)),
-            )
-        })?;
+        error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Some(&format!("Failed to convert message to document: {}", e)),
+        )
+    })?;
     state
         .users
         .update_one(
@@ -73,12 +72,8 @@ pub async fn read_message(
             )
         })?;
 
-    let user = update_result.ok_or_else(|| {
-        error_response(
-            StatusCode::NOT_FOUND,
-            Some("User or message not found"),
-        )
-    })?;
+    let user = update_result
+        .ok_or_else(|| error_response(StatusCode::NOT_FOUND, Some("User or message not found")))?;
 
     let message = user
         .unread_messages
