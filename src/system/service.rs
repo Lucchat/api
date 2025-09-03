@@ -49,7 +49,6 @@ pub async fn get_health(state: &AppState) -> Result<Json<Value>, (StatusCode, Js
 
 pub async fn get_version() -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     Ok(Json(json!({
-        "version": env!("CARGO_PKG_VERSION"),
-        "git_hash": option_env!("GIT_HASH").unwrap_or("unknown"),
+        "api_version": env!("CARGO_PKG_VERSION"),
     })))
 }
