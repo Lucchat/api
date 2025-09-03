@@ -1,11 +1,16 @@
-use crate::{state::AppState, user::models::User, utils::error::error_response};
+use crate::{user::models::User, utils::error::error_response};
 use axum::{http::StatusCode, Json};
-use mongodb::bson::{doc, Document};
+use mongodb::{
+    bson::{doc, Document},
+    Collection,
+};
 use serde_json::Value;
 
-pub async fn find_user(state: &AppState, uuid: &str) -> Result<User, (StatusCode, Json<Value>)> {
-    state
-        .users
+pub async fn find_user(
+    users: &Collection<User>,
+    uuid: &str,
+) -> Result<User, (StatusCode, Json<Value>)> {
+    users
         .find_one(doc! { "uuid": uuid })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?
@@ -16,12 +21,11 @@ pub async fn find_user(state: &AppState, uuid: &str) -> Result<User, (StatusCode
 }
 
 pub async fn update_user_fields(
-    state: &AppState,
+    users: &Collection<User>,
     uuid: &str,
     updates: Document,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    state
-        .users
+    users
         .update_one(doc! { "uuid": uuid }, doc! { "$set": updates })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
@@ -30,7 +34,7 @@ pub async fn update_user_fields(
 }
 
 pub async fn clean_reference(
-    state: &AppState,
+    users: &Collection<User>,
     user_ids: Vec<String>,
     field_name: &str,
     field_extractor: impl Fn(&mut User) -> &mut Vec<String>,
@@ -39,10 +43,10 @@ pub async fn clean_reference(
     let tasks = user_ids.into_iter().map(|fid| {
         let field_extractor = &field_extractor;
         async move {
-            if let Ok(mut friend) = find_user(state, &fid).await {
+            if let Ok(mut friend) = find_user(users, &fid).await {
                 field_extractor(&mut friend).retain(|id| id != user_id);
                 let _ = update_user_fields(
-                    state,
+                    users,
                     &fid,
                     doc! { field_name: field_extractor(&mut friend).clone() },
                 )

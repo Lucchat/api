@@ -1,13 +1,15 @@
-use crate::message::models::Message;
-use crate::state::AppState;
 use crate::user::utils::find_user;
 use crate::utils::error::error_response;
+use crate::{message::models::Message, user::models::User};
 use axum::{http::StatusCode, Json};
-use mongodb::bson::{doc, to_document};
+use mongodb::{
+    bson::{doc, to_document},
+    Collection,
+};
 use serde_json::Value;
 
 pub async fn send_message(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     message: Message,
 ) -> Result<(), (StatusCode, Json<Value>)> {
@@ -24,7 +26,8 @@ pub async fn send_message(
             Some("Sender and receiver cannot be the same"),
         ));
     }
-    if (find_user(state, message.receiver.as_str()).await).is_err() {
+
+    if (find_user(&users, message.receiver.as_str()).await).is_err() {
         return Err(error_response(
             StatusCode::NOT_FOUND,
             Some("Receiver user does not exist"),
@@ -37,8 +40,7 @@ pub async fn send_message(
             Some(&format!("Failed to convert message to document: {}", e)),
         )
     })?;
-    state
-        .users
+    users
         .update_one(
             doc! { "uuid": &message.receiver },
             doc! { "$push": { "unread_messages": msg_doc } },
@@ -54,12 +56,11 @@ pub async fn send_message(
 }
 
 pub async fn read_message(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     message_id: &str,
 ) -> Result<Message, (StatusCode, Json<Value>)> {
-    let update_result = state
-        .users
+    let update_result = users
         .find_one_and_update(
             doc! { "uuid": user_id, "unread_messages.uuid": message_id },
             doc! { "$pull": { "unread_messages": { "uuid": message_id } } },

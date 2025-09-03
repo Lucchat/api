@@ -24,7 +24,7 @@ async fn send_message(
     Extension(user_id): Extension<String>,
     Json(message): Json<models::Message>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    services::send_message(&state, &user_id, message).await?;
+    services::send_message(state.get_user_collection(), &user_id, message).await?;
     Ok(Json(json!({"status": "Message sent successfully"})))
 }
 
@@ -33,7 +33,8 @@ async fn read_message(
     Extension(user_id): Extension<String>,
     Path(message_id): Path<String>,
 ) -> Result<Json<Message>, (StatusCode, Json<Value>)> {
-    let message = services::read_message(&state, &user_id, &message_id).await?;
+    let message =
+        services::read_message(state.get_user_collection(), &user_id, &message_id).await?;
     Ok(Json(message))
 }
 

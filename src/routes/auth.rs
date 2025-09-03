@@ -20,7 +20,14 @@ async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginPayload>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    services::login(&state, payload.username, payload.password).await
+    services::login(
+        state.get_user_collection(),
+        state.secret_store,
+        state.redis,
+        payload.username,
+        payload.password,
+    )
+    .await
 }
 
 async fn register(
@@ -28,7 +35,9 @@ async fn register(
     Json(payload): Json<RegisterPayload>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     services::register(
-        &state,
+        state.get_user_collection(),
+        state.secret_store,
+        state.redis,
         payload.username,
         payload.password,
         payload.ik_pub,
