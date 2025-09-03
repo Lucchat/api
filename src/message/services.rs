@@ -26,10 +26,11 @@ pub async fn send_message(
             Some("Sender and receiver cannot be the same"),
         ));
     }
-    if (find_user(&users, message.sender.as_str()).await).is_err() {
+
+    if (find_user(&users, message.receiver.as_str()).await).is_err() {
         return Err(error_response(
             StatusCode::NOT_FOUND,
-            Some("Sender user does not exist"),
+            Some("Receiver user does not exist"),
         ));
     }
 
