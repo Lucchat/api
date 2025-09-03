@@ -15,15 +15,18 @@ use axum::{
     Json,
 };
 use mongodb::bson::doc;
+use mongodb::Collection;
 use serde_json::{json, Value};
+use shuttle_runtime::SecretStore;
 
 pub async fn login(
-    state: &AppState,
+    users: Collection<User>,
+    secret_store: SecretStore,
+    redis_client: redis::Client,
     username: String,
     password: String,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let user = state
-        .users
+    let user = users
         .find_one(doc! { "username": username })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?
@@ -36,7 +39,7 @@ pub async fn login(
 
     if is_valid {
         let (access_token, refresh_token) =
-            update_jwt(&user.uuid, &state.secret_store, &state.redis).await?;
+            update_jwt(&user.uuid, &secret_store, &redis_client).await?;
 
         let user_private = UserPrivate {
             uuid: user.uuid,
@@ -63,15 +66,16 @@ pub async fn login(
 }
 
 pub async fn register(
-    state: &AppState,
+    users: Collection<User>,
+    secret_store: SecretStore,
+    redis_client: redis::Client,
     username: String,
     password: String,
     ik_pub: [u8; 32],
     spk_pub: [u8; 32],
     opk_pub: Vec<[u8; 32]>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let existing_user = state
-        .users
+    let existing_user = users
         .find_one(doc! { "username": username.clone() })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
@@ -90,14 +94,13 @@ pub async fn register(
     let keys = Key::new(ik_pub, spk_pub, opk_pub);
     let user = User::new(username, hashed, keys);
 
-    state
-        .users
+    users
         .insert_one(&user)
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
 
     let (access_token, refresh_token) =
-        update_jwt(&user.uuid, &state.secret_store, &state.redis).await?;
+        update_jwt(&user.uuid, &secret_store, &redis_client).await?;
 
     let user_private = UserPrivate {
         uuid: user.uuid,

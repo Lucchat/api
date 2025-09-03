@@ -1,7 +1,6 @@
 use crate::{
-    state::AppState,
     user::{
-        models::{MessageInfo, UserPrivate, UserPublic, UserPublicFriend, UserResponse},
+        models::{MessageInfo, User, UserPrivate, UserPublic, UserPublicFriend, UserResponse},
         payload::UserUpdatePayload,
         utils::{clean_reference, find_user, update_user_fields},
     },
@@ -9,16 +8,15 @@ use crate::{
 };
 use axum::{http::StatusCode, Json};
 use futures::stream::StreamExt;
-use mongodb::bson::doc;
+use mongodb::{bson::doc, Collection};
 use mongodb::bson::Document;
 use serde_json::{json, Value};
 
 pub async fn get_profile(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
 ) -> Result<UserPrivate, (StatusCode, Json<Value>)> {
-    let user = state
-        .users
+    let user = users
         .find_one(doc! { "uuid": user_id })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?
@@ -40,12 +38,11 @@ pub async fn get_profile(
 }
 
 pub async fn get_by_id(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     target_id: &str,
 ) -> Result<Json<UserResponse>, (StatusCode, Json<Value>)> {
-    let user = state
-        .users
+    let user = users
         .find_one(doc! { "uuid": target_id })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?
@@ -76,16 +73,16 @@ pub async fn get_by_id(
     }
 }
 
-pub async fn get_all(state: &AppState) -> Result<Vec<UserPublic>, (StatusCode, Json<Value>)> {
+pub async fn get_all(users: Collection<User>) -> Result<Vec<UserPublic>, (StatusCode, Json<Value>)> {
     let mut cursor =
-        state.users.find(doc! {}).await.map_err(|_| {
+        users.find(doc! {}).await.map_err(|_| {
             error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error"))
         })?;
 
-    let mut users = Vec::new();
+    let mut users_public = Vec::new();
     while let Some(result) = cursor.next().await {
         if let Ok(user) = result {
-            users.push(UserPublic {
+            users_public.push(UserPublic {
                 uuid: user.uuid,
                 username: user.username,
                 description: user.description,
@@ -94,19 +91,18 @@ pub async fn get_all(state: &AppState) -> Result<Vec<UserPublic>, (StatusCode, J
         }
     }
 
-    Ok(users)
+    Ok(users_public)
 }
 
 pub async fn update_user(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     updates: UserUpdatePayload,
 ) -> Result<UserPrivate, (StatusCode, Json<Value>)> {
     let mut set_doc: Document = Document::new();
 
     if let Some(username) = &updates.username {
-        let existing_user = state
-            .users
+        let existing_user = users
             .find_one(doc! { "username": username })
             .await
             .map_err(|_| {
@@ -142,24 +138,22 @@ pub async fn update_user(
 
     let update_doc = doc! { "$set": set_doc };
 
-    state
-        .users
+    users
         .update_one(doc! { "uuid": user_id }, update_doc)
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
 
-    get_profile(state, user_id).await
+    get_profile(users, user_id).await
 }
 
-pub async fn delete_user(state: &AppState, user_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
-    let user = find_user(state, user_id).await?;
+pub async fn delete_user(users: Collection<User>, user_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
+    let user = find_user(&users, user_id).await?;
 
     let pending_requests = user.pending_friend_requests.clone();
     let friends_requests = user.friends_requests.clone();
     let friends = user.friends.clone();
 
-    let result = state
-        .users
+    let result = users
         .delete_one(doc! { "uuid": user_id })
         .await
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
@@ -170,10 +164,10 @@ pub async fn delete_user(state: &AppState, user_id: &str) -> Result<(), (StatusC
             Some("User not found"),
         ));
     }
-    clean_reference(state, friends, "friends", |u| &mut u.friends, user_id).await;
+    clean_reference(&users, friends, "friends", |u| &mut u.friends, user_id).await;
 
     clean_reference(
-        state,
+        &users,
         pending_requests,
         "friends_requests",
         |u| &mut u.friends_requests,
@@ -182,7 +176,7 @@ pub async fn delete_user(state: &AppState, user_id: &str) -> Result<(), (StatusC
     .await;
 
     clean_reference(
-        state,
+        &users,
         friends_requests,
         "pending_friend_requests",
         |u| &mut u.pending_friend_requests,
@@ -194,13 +188,13 @@ pub async fn delete_user(state: &AppState, user_id: &str) -> Result<(), (StatusC
 }
 
 pub async fn request_friendship(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     friend_id: &str,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<Value>)> {
-    let mut user = find_user(state, user_id).await?;
+    let mut user = find_user(&users, user_id).await?;
 
-    let mut friend = find_user(state, friend_id).await?;
+    let mut friend = find_user(&users, friend_id).await?;
 
     if user.uuid == friend.uuid {
         return Err(error_response(
@@ -245,7 +239,7 @@ pub async fn request_friendship(
             .pending_friend_requests
             .contains(&user_id.to_string())
     {
-        accept_friendship(state, user_id, friend_id).await?;
+        accept_friendship(users, user_id, friend_id).await?;
         return Ok(Json(
             json!({"message": "Friendship auto-accepted (mutual request)"}),
         ));
@@ -255,13 +249,13 @@ pub async fn request_friendship(
     friend.friends_requests.push(user_id.to_string());
 
     update_user_fields(
-        state,
+        &users,
         user_id,
         doc! { "pending_friend_requests": user.pending_friend_requests },
     )
     .await?;
     update_user_fields(
-        state,
+        &users,
         friend_id,
         doc! { "friends_requests": friend.friends_requests },
     )
@@ -271,12 +265,12 @@ pub async fn request_friendship(
 }
 
 pub async fn accept_friendship(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     friend_id: &str,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    let mut user = find_user(state, user_id).await?;
-    let mut friend = find_user(state, friend_id).await?;
+    let mut user = find_user(&users, user_id).await?;
+    let mut friend = find_user(&users, friend_id).await?;
 
     if user.uuid == friend.uuid {
         return Err(error_response(
@@ -317,23 +311,23 @@ pub async fn accept_friendship(
     friend.friends.push(user_id.to_string());
 
     update_user_fields(
-        state,
+        &users,
         user_id,
         doc! { "friends_requests": user.friends_requests, "friends": user.friends },
     )
     .await?;
-    update_user_fields(state, friend_id, doc! { "pending_friend_requests": friend.pending_friend_requests, "friends": friend.friends }).await?;
+    update_user_fields(&users, friend_id, doc! { "pending_friend_requests": friend.pending_friend_requests, "friends": friend.friends }).await?;
 
     Ok(())
 }
 
 pub async fn decline_friendship(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     friend_id: &str,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    let mut user = find_user(state, user_id).await?;
-    let mut friend = find_user(state, friend_id).await?;
+    let mut user = find_user(&users, user_id).await?;
+    let mut friend = find_user(&users, friend_id).await?;
 
     if user.uuid == friend.uuid {
         return Err(error_response(
@@ -362,13 +356,13 @@ pub async fn decline_friendship(
     friend.pending_friend_requests.retain(|id| id != user_id);
 
     update_user_fields(
-        state,
+        &users,
         user_id,
         doc! { "friends_requests": user.friends_requests },
     )
     .await?;
     update_user_fields(
-        state,
+        &users,
         friend_id,
         doc! { "pending_friend_requests": friend.pending_friend_requests },
     )
@@ -378,12 +372,12 @@ pub async fn decline_friendship(
 }
 
 pub async fn remove_friendship(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
     friend_id: &str,
 ) -> Result<(), (StatusCode, Json<Value>)> {
-    let mut user = find_user(state, user_id).await?;
-    let mut friend = find_user(state, friend_id).await?;
+    let mut user = find_user(&users, user_id).await?;
+    let mut friend = find_user(&users, friend_id).await?;
 
     if user.uuid == friend.uuid {
         return Err(error_response(
@@ -408,17 +402,17 @@ pub async fn remove_friendship(
     user.friends.retain(|id| id != friend_id);
     friend.friends.retain(|id| id != user_id);
 
-    update_user_fields(state, user_id, doc! { "friends": user.friends }).await?;
-    update_user_fields(state, friend_id, doc! { "friends": friend.friends }).await?;
+    update_user_fields(&users, user_id, doc! { "friends": user.friends }).await?;
+    update_user_fields(&users, friend_id, doc! { "friends": friend.friends }).await?;
 
     Ok(())
 }
 
 pub async fn get_messages(
-    state: &AppState,
+    users: Collection<User>,
     user_id: &str,
 ) -> Result<Vec<MessageInfo>, (StatusCode, Json<Value>)> {
-    let user = find_user(state, user_id).await?;
+    let user = find_user(&users, user_id).await?;
     let messages_info = user
         .unread_messages
         .iter()
