@@ -49,7 +49,8 @@ async fn update_user(
     Extension(user_id): Extension<String>,
     Json(payload): Json<UserUpdatePayload>,
 ) -> Result<Json<UserPrivate>, (StatusCode, Json<Value>)> {
-    let updated_user = services::update_user(state.get_user_collection(), &user_id, payload).await?;
+    let updated_user =
+        services::update_user(state.get_user_collection(), &user_id, payload).await?;
     Ok(Json(updated_user))
 }
 
@@ -66,7 +67,8 @@ async fn request_friendship(
     Path(username): Path<String>,
     Extension(user_id): Extension<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let result = services::request_friendship(state.get_user_collection(), &user_id, &username).await;
+    let result =
+        services::request_friendship(state.get_user_collection(), &user_id, &username).await;
     match result {
         Ok(value) => Ok(value),
         Err(err) => Err(err),
@@ -78,7 +80,8 @@ async fn accept_friendship(
     Path(username): Path<String>,
     Extension(user_id): Extension<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let result = services::accept_friendship(state.get_user_collection(), &user_id, &username).await;
+    let result =
+        services::accept_friendship(state.get_user_collection(), &user_id, &username).await;
     match result {
         Ok(_) => Ok(Json(json!({"message": "Friend request accepted"}))),
         Err(err) => Err(err),
@@ -90,7 +93,8 @@ async fn reject_friendship(
     Path(username): Path<String>,
     Extension(user_id): Extension<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let result = services::decline_friendship(state.get_user_collection(), &user_id, &username).await;
+    let result =
+        services::decline_friendship(state.get_user_collection(), &user_id, &username).await;
     match result {
         Ok(_) => Ok(Json(json!({"message": "Friend request rejected"}))),
         Err(err) => Err(err),
@@ -102,7 +106,8 @@ async fn remove_friendship(
     Path(username): Path<String>,
     Extension(user_id): Extension<String>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let result = services::remove_friendship(state.get_user_collection(), &user_id, &username).await;
+    let result =
+        services::remove_friendship(state.get_user_collection(), &user_id, &username).await;
     match result {
         Ok(_) => Ok(Json(json!({"message": "Friend removed"}))),
         Err(err) => Err(err),

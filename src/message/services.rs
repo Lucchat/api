@@ -1,8 +1,11 @@
-use crate::{message::models::Message, user::models::User};
 use crate::user::utils::find_user;
 use crate::utils::error::error_response;
+use crate::{message::models::Message, user::models::User};
 use axum::{http::StatusCode, Json};
-use mongodb::{bson::{doc, to_document}, Collection};
+use mongodb::{
+    bson::{doc, to_document},
+    Collection,
+};
 use serde_json::Value;
 
 pub async fn send_message(

@@ -3,24 +3,32 @@ use mongodb::bson::doc;
 use serde_json::{json, Value};
 
 use crate::state::AppState;
+use tokio::time::{timeout, Duration};
 
 pub async fn get_health(state: &AppState) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let uptime = state.started_at.elapsed().as_secs();
-    let mongo_status = match state
-        .mongo
-        .database("admin")
-        .run_command(doc! {"ping": 1})
-        .await
+    let mongo_status = match timeout(
+        Duration::from_secs(5),
+        state.mongo.database("admin").run_command(doc! {"ping": 1}),
+    )
+    .await
     {
-        Ok(_) => "up",
-        Err(_) => "down",
+        Ok(Ok(_)) => "up",
+        _ => "down",
     };
 
-    let redis_status = match state.redis.get_multiplexed_tokio_connection().await {
-        Ok(mut conn) => match redis::cmd("PING").query_async::<String>(&mut conn).await {
-            Ok(_) => "up",
+    let redis_status = match timeout(Duration::from_secs(5), async {
+        match state.redis.get_multiplexed_tokio_connection().await {
+            Ok(mut conn) => match redis::cmd("PING").query_async::<String>(&mut conn).await {
+                Ok(_) => "up",
+                Err(_) => "down",
+            },
             Err(_) => "down",
-        },
+        }
+    })
+    .await
+    {
+        Ok(status) => status,
         Err(_) => "down",
     };
 
@@ -39,12 +47,9 @@ pub async fn get_health(state: &AppState) -> Result<Json<Value>, (StatusCode, Js
     })))
 }
 
-pub async fn get_version(_: &crate::state::AppState) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
+pub async fn get_version() -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     Ok(Json(json!({
         "version": env!("CARGO_PKG_VERSION"),
         "git_hash": option_env!("GIT_HASH").unwrap_or("unknown"),
-        "build_time": option_env!("BUILD_TIME").unwrap_or("unknown"),
     })))
 }
-
-

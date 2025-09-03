@@ -33,7 +33,8 @@ async fn read_message(
     Extension(user_id): Extension<String>,
     Path(message_id): Path<String>,
 ) -> Result<Json<Message>, (StatusCode, Json<Value>)> {
-    let message = services::read_message(state.get_user_collection(), &user_id, &message_id).await?;
+    let message =
+        services::read_message(state.get_user_collection(), &user_id, &message_id).await?;
     Ok(Json(message))
 }
 

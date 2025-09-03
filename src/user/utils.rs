@@ -1,9 +1,15 @@
 use crate::{user::models::User, utils::error::error_response};
 use axum::{http::StatusCode, Json};
-use mongodb::{bson::{doc, Document}, Collection};
+use mongodb::{
+    bson::{doc, Document},
+    Collection,
+};
 use serde_json::Value;
 
-pub async fn find_user(users: &Collection<User>, uuid: &str) -> Result<User, (StatusCode, Json<Value>)> {
+pub async fn find_user(
+    users: &Collection<User>,
+    uuid: &str,
+) -> Result<User, (StatusCode, Json<Value>)> {
     users
         .find_one(doc! { "uuid": uuid })
         .await

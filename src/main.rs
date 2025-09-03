@@ -1,6 +1,8 @@
 use axum::Router;
 use lucchat_api::{
-    routes::{auth::auth_routes, message::message_routes, user::user_routes},
+    routes::{
+        auth::auth_routes, message::message_routes, system::system_routes, user::user_routes,
+    },
     state::AppState,
 };
 use shuttle_runtime::SecretStore;
@@ -22,11 +24,13 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_
     let user_routes = user_routes(app_state.clone());
     let auth_routes = auth_routes(app_state.clone());
     let message_routes = message_routes(app_state.clone());
+    let system_routes = system_routes();
 
     let app = Router::new()
         .merge(auth_routes)
         .merge(user_routes)
         .merge(message_routes)
+        .merge(system_routes)
         .with_state(app_state);
 
     Ok(app.into())

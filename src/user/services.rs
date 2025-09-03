@@ -8,8 +8,8 @@ use crate::{
 };
 use axum::{http::StatusCode, Json};
 use futures::stream::StreamExt;
-use mongodb::{bson::doc, Collection};
 use mongodb::bson::Document;
+use mongodb::{bson::doc, Collection};
 use serde_json::{json, Value};
 
 pub async fn get_profile(
@@ -73,11 +73,13 @@ pub async fn get_by_id(
     }
 }
 
-pub async fn get_all(users: Collection<User>) -> Result<Vec<UserPublic>, (StatusCode, Json<Value>)> {
-    let mut cursor =
-        users.find(doc! {}).await.map_err(|_| {
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error"))
-        })?;
+pub async fn get_all(
+    users: Collection<User>,
+) -> Result<Vec<UserPublic>, (StatusCode, Json<Value>)> {
+    let mut cursor = users
+        .find(doc! {})
+        .await
+        .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, Some("Database error")))?;
 
     let mut users_public = Vec::new();
     while let Some(result) = cursor.next().await {
@@ -146,7 +148,10 @@ pub async fn update_user(
     get_profile(users, user_id).await
 }
 
-pub async fn delete_user(users: Collection<User>, user_id: &str) -> Result<(), (StatusCode, Json<Value>)> {
+pub async fn delete_user(
+    users: Collection<User>,
+    user_id: &str,
+) -> Result<(), (StatusCode, Json<Value>)> {
     let user = find_user(&users, user_id).await?;
 
     let pending_requests = user.pending_friend_requests.clone();
