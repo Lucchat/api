@@ -80,15 +80,21 @@ pub struct MessageInfo {
 pub struct Key {
     pub ik_pub: [u8; 32],
     pub spk_pub: [u8; 32],
-    pub opk_pub: Vec<[u8; 32]>,
+    pub opk_pub: Vec<Opk>,
 }
 
 impl Key {
-    pub fn new(ik_pub: [u8; 32], spk_pub: [u8; 32], opk_pub: Vec<[u8; 32]>) -> Self {
+    pub fn new(ik_pub: [u8; 32], spk_pub: [u8; 32], opk_pub: Vec<Opk>) -> Self {
         Self {
             ik_pub,
             spk_pub,
             opk_pub,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Opk {
+    pub uuid: String,
+    pub key: [u8; 32],
 }
