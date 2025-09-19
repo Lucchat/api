@@ -1,4 +1,4 @@
-use crate::user::models::MessageInfo;
+use crate::user::models::{MessageInfo, OneTimePreKeyPublic};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,7 +10,7 @@ pub struct Message {
     pub ciphertext: Vec<u8>,
     pub ratchet_pub: [u8; 32], // DH public key used in ratchet step
     pub message_index: u32,    // Index in chain key (CKs.index)
-    pub opk_used: Option<[u8; 32]>,
+    pub opk_used: Option<OneTimePreKeyPublic>,
     pub ek_used: Option<[u8; 32]>,
     pub created_at: i64,
 }

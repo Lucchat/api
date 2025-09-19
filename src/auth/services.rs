@@ -1,7 +1,7 @@
 use crate::auth::password::is_password_strong;
 use crate::auth::utils::update_jwt;
 use crate::state::AppState;
-use crate::user::models::{Opk, User, UserPrivate};
+use crate::user::models::{OneTimePreKeyPublic, User, UserPrivate};
 use crate::utils::error::error_response;
 use crate::{
     auth::{
@@ -73,7 +73,7 @@ pub async fn register(
     password: String,
     ik_pub: [u8; 32],
     spk_pub: [u8; 32],
-    opk_pub: Vec<Opk>,
+    opk_pub: Vec<OneTimePreKeyPublic>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let existing_user = users
         .find_one(doc! { "username": username.clone() })
