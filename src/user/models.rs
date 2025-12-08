@@ -80,15 +80,15 @@ pub struct MessageInfo {
 pub struct Key {
     pub ik_pub: [u8; 32],
     pub spk_pub: [u8; 32],
-    pub opk_pub: Vec<OneTimePreKeyPublic>,
+    pub opks_pub: Vec<OneTimePreKeyPublic>,
 }
 
 impl Key {
-    pub fn new(ik_pub: [u8; 32], spk_pub: [u8; 32], opk_pub: Vec<OneTimePreKeyPublic>) -> Self {
+    pub fn new(ik_pub: [u8; 32], spk_pub: [u8; 32], opks_pub: Vec<OneTimePreKeyPublic>) -> Self {
         Self {
             ik_pub,
             spk_pub,
-            opk_pub,
+            opks_pub,
         }
     }
 }

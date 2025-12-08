@@ -73,7 +73,7 @@ pub async fn register(
     password: String,
     ik_pub: [u8; 32],
     spk_pub: [u8; 32],
-    opk_pub: Vec<OneTimePreKeyPublic>,
+    opks_pub: Vec<OneTimePreKeyPublic>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
     let existing_user = users
         .find_one(doc! { "username": username.clone() })
@@ -91,7 +91,7 @@ pub async fn register(
 
     let hashed = hash_password(&password)
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, None))?;
-    let keys = Key::new(ik_pub, spk_pub, opk_pub);
+    let keys = Key::new(ik_pub, spk_pub, opks_pub);
     let user = User::new(username, hashed, keys);
 
     users

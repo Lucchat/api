@@ -42,7 +42,7 @@ async fn register(
         payload.password,
         payload.ik_pub,
         payload.spk_pub,
-        payload.opk_pub,
+        payload.opks_pub,
     )
     .await
 }

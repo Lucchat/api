@@ -14,5 +14,5 @@ pub struct RegisterPayload {
     pub password: String,
     pub ik_pub: [u8; 32],
     pub spk_pub: [u8; 32],
-    pub opk_pub: Vec<OneTimePreKeyPublic>,
+    pub opks_pub: Vec<OneTimePreKeyPublic>,
 }
