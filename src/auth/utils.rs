@@ -1,8 +1,7 @@
 use axum::{http::StatusCode, Json};
 use redis::Client;
 use serde_json::Value;
-use shuttle_runtime::SecretStore;
-
+use crate::state::SecretStore;
 use crate::auth::{
     jwt::{create_access_token, create_refresh_token, decode_jwt},
     whitelist::set_valid_jti,

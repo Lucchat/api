@@ -1,18 +1,22 @@
 use axum::Router;
+use dotenv::dotenv;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
 use lucchat_api::{
     routes::{
         auth::auth_routes, message::message_routes, system::system_routes, user::user_routes,
     },
-    state::AppState,
+    state::{AppState, SecretStore},
 };
-use shuttle_runtime::SecretStore;
 
-#[shuttle_runtime::main]
-async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_axum::ShuttleAxum {
-    let mongo_uri = secret_store.get("MONGO_URI").expect("missing mongo_uri");
-    let redis_uri = secret_store.get("REDIS_URI").expect("missing REDIS_URI");
+#[tokio::main]
+async fn main() {
+    dotenv().ok();
+    let mongo_uri = std::env::var("MONGO_URI").expect("missing MONGO_URI");
+    let redis_uri = std::env::var("REDIS_URI").expect("missing REDIS_URI");
     let mongo = mongodb::Client::with_uri_str(&mongo_uri).await.unwrap();
     let redis = redis::Client::open(redis_uri).expect("invalid redis URI");
+    let secret_store = SecretStore;
 
     let app_state = AppState {
         mongo,
@@ -26,12 +30,17 @@ async fn main(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> shuttle_
     let message_routes = message_routes(app_state.clone());
     let system_routes = system_routes();
 
-    let app = Router::new()
+    let app= Router::new()
         .merge(auth_routes)
         .merge(user_routes)
         .merge(message_routes)
         .merge(system_routes)
         .with_state(app_state);
 
-    Ok(app.into())
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+
+    let listener = TcpListener::bind(addr).await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
+
 }

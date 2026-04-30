@@ -1,5 +1,4 @@
 use mongodb::Collection;
-use shuttle_runtime::SecretStore;
 
 use crate::user::models::User;
 
@@ -16,3 +15,13 @@ impl AppState {
         self.mongo.database("lucchat").collection("users")
     }
 }
+
+#[derive(Clone)]
+pub struct SecretStore;
+
+impl SecretStore {
+    pub fn get(&self, key: &str) -> Option<String> {
+        std::env::var(key).ok()
+    }
+}
+

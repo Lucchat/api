@@ -1,5 +1,5 @@
 use crate::auth::whitelist::is_jti_valid;
-use crate::state::AppState;
+use crate::state::{AppState, SecretStore};
 use crate::utils::error::error_response;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -7,7 +7,6 @@ use axum::Json;
 use axum::{http::Request, middleware::Next, response::Response};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use shuttle_runtime::SecretStore;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]

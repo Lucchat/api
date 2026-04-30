@@ -18,5 +18,5 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /home/shvvkz/docker-volumes/mongo-data
+      device: /home/shaakz/docker-volumes/mongo-data
       o: bind

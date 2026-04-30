@@ -4,9 +4,7 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-axum = "0.8"
-shuttle-axum = "0.56.0"
-shuttle-runtime = "0.56.0"
+axum = "0.8.9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.141"
 jsonwebtoken = "9.3.1"

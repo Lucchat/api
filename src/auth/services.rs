@@ -1,6 +1,6 @@
 use crate::auth::password::is_password_strong;
 use crate::auth::utils::update_jwt;
-use crate::state::AppState;
+use crate::state::{AppState, SecretStore};
 use crate::user::models::{OneTimePreKeyPublic, User, UserPrivate};
 use crate::utils::error::error_response;
 use crate::{
@@ -17,7 +17,6 @@ use axum::{
 use mongodb::bson::doc;
 use mongodb::Collection;
 use serde_json::{json, Value};
-use shuttle_runtime::SecretStore;
 
 pub async fn login(
     users: Collection<User>,
